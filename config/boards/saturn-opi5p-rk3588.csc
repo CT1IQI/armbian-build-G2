@@ -26,16 +26,12 @@ function post_family_config__saturn-opi5p_use_mainline_uboot() {
 	prepare_boot_configuration
 	declare -g BOOTSCRIPT='boot-saturn-opi5p-rk3588.cmd:boot.cmd'
 	declare -g BOOTENV_FILE='saturn-opi5p-rk3588.txt'
-#	declare -g BOOTCONFIG="saturn-opi5p-rk3588_defconfig"
 	declare -g BOOTCONFIG="orangepi-5-plus-rk3588_defconfig"
 	declare -g BOOTDELAY=1
 	declare -g BOOTSOURCE="https://github.com/u-boot/u-boot.git"
-#	declare -g BOOTBRANCH="tag:v2026.04"
 	declare -g BOOTBRANCH="tag:v2026.01"
-#	declare -g BOOTPATCHDIR="v2026.04"
 	declare -g BOOTPATCHDIR="v2026.01"
 	declare -g BOOTDIR="u-boot-${BOARD}"
-#	declare -g UBOOT_TARGET_MAP="BL31=${RKBIN_DIR}/${BL31_BLOB} ROCKCHIP_TPL=${RKBIN_DIR}/${DDR_BLOB};;u-boot-rockchip.bin"
 	declare -g UBOOT_TARGET_MAP="BL31=bl31.elf ROCKCHIP_TPL=${RKBIN_DIR}/${DDR_BLOB};;u-boot-rockchip.bin"
 	unset uboot_custom_postprocess write_uboot_platform write_uboot_platform_mtd # disable stuff from rockchip64_common; we're using binman here which does all the work already
 
