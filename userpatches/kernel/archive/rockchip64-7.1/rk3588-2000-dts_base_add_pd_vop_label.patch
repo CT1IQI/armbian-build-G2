@@ -1,0 +1,12 @@
+
+--- a/arch/arm64/boot/dts/rockchip/rk3588-base.dtsi	
++++ b/arch/arm64/boot/dts/rockchip/rk3588-base.dtsi	
+@@ -1007,7 +1007,7 @@
+ 					#power-domain-cells = <0>;
+ 				};
+ 			};
+-			power-domain@RK3588_PD_VOP {
++			pd_vop: power-domain@RK3588_PD_VOP {
+ 				reg = <RK3588_PD_VOP>;
+ 				clocks = <&cru PCLK_VOP_ROOT>,
+ 					 <&cru HCLK_VOP_ROOT>,
