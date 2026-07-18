@@ -1,0 +1,58 @@
+
+--- a/drivers/mmc/host/dw_mmc-rockchip.c	
++++ b/drivers/mmc/host/dw_mmc-rockchip.c	
+@@ -467,6 +467,20 @@ static int dw_mci_rk3576_parse_dt(struct
+ 	return 0;
+ }
+ 
++static int dw_mci_rk3588_parse_dt(struct dw_mci *host)
++{
++	struct dw_mci_rockchip_priv_data *priv;
++	int err = dw_mci_common_parse_dt(host);
++	if (err)
++		return err;
++
++	priv = host->priv;
++
++	priv->internal_phase = true;
++
++	return 0;
++}
++
+ static int dw_mci_rockchip_init(struct dw_mci *host)
+ {
+ 	int ret, i;
+@@ -474,7 +488,8 @@ static int dw_mci_rockchip_init(struct d
+ 	/* It is slot 8 on Rockchip SoCs */
+ 	host->sdio_id0 = 8;
+ 
+-	if (of_device_is_compatible(host->dev->of_node, "rockchip,rk3288-dw-mshc")) {
++	if (of_device_is_compatible(host->dev->of_node, "rockchip,rk3288-dw-mshc") || 
++		of_device_is_compatible(host->dev->of_node, "rockchip,rk3588-dw-mshc")) {
+ 		host->bus_hz /= RK3288_CLKGEN_DIV;
+ 
+ 		/* clock driver will fail if the clock is less than the lowest source clock
+@@ -516,6 +531,14 @@ static const struct dw_mci_drv_data rk35
+ 	.init			= dw_mci_rockchip_init,
+ };
+ 
++static const struct dw_mci_drv_data rk3588_drv_data = {
++	.common_caps		= MMC_CAP_CMD23,
++	.set_ios		= dw_mci_rk3288_set_ios,
++	.execute_tuning		= dw_mci_rk3288_execute_tuning,
++	.parse_dt		= dw_mci_rk3588_parse_dt,
++	.init			= dw_mci_rockchip_init,
++};
++
+ static const struct of_device_id dw_mci_rockchip_match[] = {
+ 	{ .compatible = "rockchip,rk2928-dw-mshc",
+ 		.data = &rk2928_drv_data },
+@@ -523,6 +546,8 @@ static const struct of_device_id dw_mci_
+ 		.data = &rk3288_drv_data },
+ 	{ .compatible = "rockchip,rk3576-dw-mshc",
+ 		.data = &rk3576_drv_data },
++	{ .compatible = "rockchip,rk3588-dw-mshc",
++		.data = &rk3588_drv_data },
+ 	{},
+ };
+ MODULE_DEVICE_TABLE(of, dw_mci_rockchip_match);
