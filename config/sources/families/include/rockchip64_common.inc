@@ -34,7 +34,12 @@ case $BRANCH in
 	edge)
 		declare -g KERNEL_MAJOR_MINOR="7.1"
 		declare -g LINUXFAMILY=rockchip64
-		declare -g LINUXCONFIG='linux-rockchip64-'$BRANCH
+		if [[ n$PFORM == 'nsaturn-opi5p' ]]
+		then
+			declare -g LINUXCONFIG='linux-rockchip64-saturn-opi5p-edge-701'
+		else
+			declare -g LINUXCONFIG='linux-rockchip64-'$BRANCH
+		fi
 		;;
 
 	bleedingedge)
