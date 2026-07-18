@@ -5,6 +5,8 @@
 
 ## Purpose of This Repository
 
+This is a branch of a fork of Armbian to create an OS for an Apache-Labs 'Anan G2' Software Defined Radio system, operated not in the standard way from a Compute Module on the main Saturn board, but from an Orange Pi plus single board computer via 4-lane XDMA and the available PCIe x4 edge connector. No pull request to main Armbian will be made since this is not a main stream board configuration.
+
 The **Armbian Linux Build Framework** creates customizable OS images based on **Debian** or **Ubuntu** for **single-board computers (SBCs)** and embedded devices.
 
 It builds a complete Linux system including kernel, bootloader, and root filesystem, giving you control over versions, configuration, firmware, device trees, and system optimizations.
