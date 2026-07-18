@@ -1,0 +1,641 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2023 Ondřej Jirman <megi@xff.cz>
+ * Copyright (c) 2026 CT1IQI <ct1iqi@cacelense.pt>
+ */
+
+/dts-v1/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rockchip.h>
+#include <dt-bindings/soc/rockchip,vop2.h>
+#include <dt-bindings/usb/pd.h>
+#include "rk3588-orangepi-5.dtsi"
+
+/ {
+	model = "Saturn SDR, Orange Pi 5 Plus, 8inch LCD/Touch panel";
+	compatible = "xunlong,orangepi-5-plus", "rockchip,rk3588";
+
+	hdmi0-con {
+		compatible = "hdmi-connector";
+		type = "a";
+
+		port {
+			hdmi0_con_in: endpoint {
+				remote-endpoint = <&hdmi0_out_con>;
+			};
+		};
+	};
+
+	hdmi1-con {
+		compatible = "hdmi-connector";
+		type = "a";
+
+		port {
+			hdmi1_con_in: endpoint {
+				remote-endpoint = <&hdmi1_out_con>;
+			};
+		};
+	};
+
+	ir-receiver {
+		compatible = "gpio-ir-receiver";
+		gpios = <&gpio4 RK_PB3 GPIO_ACTIVE_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&ir_receiver_pin>;
+	};
+
+	rfkill {
+		compatible = "rfkill-gpio";
+		label = "rfkill-pcie-wlan";
+		radio-type = "wlan";
+		shutdown-gpios = <&gpio0 RK_PC4 GPIO_ACTIVE_HIGH>;
+	};
+
+	vbus5v0_typec: regulator-vbus-typec {
+		compatible = "regulator-fixed";
+		enable-active-high;
+		gpio = <&gpio4 RK_PB0 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&typec5v_pwren>;
+		regulator-name = "vbus5v0_typec";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		vin-supply = <&vcc5v0_sys>;
+	};
+
+	/* Unnamed gated oscillator: 100MHz, 3.3V, AU5426 Buffer IC */
+	pcie30_refclk: pcie-oscillator {
+		compatible = "gated-fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <100000000>;
+		clock-output-names = "pcie30_refclk";
+		vdd-supply = <&vcc3v3_pcie30>;
+	};
+};
+
+&speaker_amp {
+	enable-gpios = <&gpio3 RK_PC0 GPIO_ACTIVE_HIGH>;
+	status = "okay";
+};
+
+&headphone_amp {
+	enable-gpios = <&gpio3 RK_PA7 GPIO_ACTIVE_HIGH>;
+};
+
+&analog_sound {
+	pinctrl-names = "default";
+	pinctrl-0 = <&hp_detect>;
+	simple-audio-card,aux-devs = <&speaker_amp>, <&headphone_amp>;
+	simple-audio-card,hp-det-gpios = <&gpio1 RK_PD3 GPIO_ACTIVE_HIGH>;
+	simple-audio-card,widgets =
+		"Microphone", "Onboard Microphone",
+		"Microphone", "Microphone Jack",
+		"Speaker", "Speaker",
+		"Headphone", "Headphones";
+
+	simple-audio-card,routing =
+		"Headphones", "LOUT1",
+		"Headphones", "ROUT1",
+		"Speaker", "LOUT2",
+		"Speaker", "ROUT2",
+
+		"Headphones", "Headphones Amp OUTL",
+		"Headphones", "Headphones Amp OUTR",
+		"Headphones Amp INL", "LOUT1",
+		"Headphones Amp INR", "ROUT1",
+
+		"Speaker", "Speaker Amp OUTL",
+		"Speaker", "Speaker Amp OUTR",
+		"Speaker Amp INL", "LOUT2",
+		"Speaker Amp INR", "ROUT2",
+
+		/* single ended signal to LINPUT1 */
+		"LINPUT1", "Microphone Jack",
+		"RINPUT1", "Microphone Jack",
+		/* differential signal */
+		"LINPUT2", "Onboard Microphone",
+		"RINPUT2", "Onboard Microphone";
+};
+
+&fan {
+	pwms = <&pwm3 0 50000 0>;
+};
+
+// HDMI0
+&hdmi0 {
+	cec-enable = "true";
+	status = "okay";
+};
+
+&hdmi0_sound {
+	status = "okay";
+};
+
+&hdmi0_out {
+	hdmi0_out_con: endpoint {
+		remote-endpoint = <&hdmi0_con_in>;
+	};
+};
+
+&hdmi0_in {
+	hdmi0_input: endpoint {
+		remote-endpoint = <&vp_out_to_hdmi0>;
+	};
+};
+
+&vp1 {
+	vp_out_to_hdmi0: endpoint@ROCKCHIP_VOP2_EP_HDMI0 {
+		reg = <ROCKCHIP_VOP2_EP_HDMI0>;
+		remote-endpoint = <&hdmi0_input>;
+	};
+};
+
+&hdptxphy0 {
+	status = "okay";
+};
+
+// HDMI1
+&hdmi1 {
+	status = "okay";
+};
+
+&hdmi1_sound {
+	status = "okay";
+};
+
+&hdptxphy1 {
+	status = "okay";
+};
+
+&hdmi1_out {
+	hdmi1_out_con: endpoint {
+		remote-endpoint = <&hdmi1_con_in>;
+	};
+};
+
+&hdmi1_in {
+	hdmi1_input: endpoint {
+		remote-endpoint = <&vp_out_hdmi1>;
+	};
+};
+
+&vp0 {
+	vp_out_hdmi1: endpoint@ROCKCHIP_VOP2_EP_HDMI1 {
+		reg = <ROCKCHIP_VOP2_EP_HDMI1>;
+		remote-endpoint = <&hdmi1_input>;
+	};
+};
+
+// MIPI / DSI1
+&dsi1 {
+	status = "okay";
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			dsi1_input: endpoint {
+				remote-endpoint = <&dsi1_in_source>;
+			};
+		};
+
+		port@1 {
+			reg = <1>;
+			dsi1_output: endpoint {
+				remote-endpoint = <&panel_dsi1_source>;
+			};
+		};
+	};
+};
+
+&mipidcphy1 {
+	status = "okay";
+};
+
+// !! vp3 to dsi1 !!
+&vp3 {
+	dsi1_in_source: endpoint@ROCKCHIP_VOP2_EP_MIPI1 {
+		reg = <ROCKCHIP_VOP2_EP_MIPI1>;
+		remote-endpoint = <&dsi1_input>;
+	};
+};
+
+&vop {
+	status = "okay";
+};
+
+&vop_mmu {
+	status = "okay";
+};
+
+/* ____ disable vp not used for HDMI or DSI _____*/
+&vop_out {
+	/delete-node/ vp2;
+};
+
+// Power domain VOP and DSI, forgotten in main line
+&pd_vop {
+	clocks = <&cru ACLK_VOP_ROOT>,
+		<&cru PCLK_VOP_ROOT>,
+		<&cru HCLK_VOP_ROOT>,
+		<&cru ACLK_VOP>,
+		<&cru HCLK_VOP>,
+		<&cru PCLK_DSIHOST0>,
+		<&cru PCLK_DSIHOST1>,
+		<&cru CLK_DSIHOST0>,
+		<&cru CLK_DSIHOST1>;
+//	domain-supply = <&vdd_log_s0>;
+};
+
+/*
+// HDMI Receiver
+&hdmi_receiver_cma {
+	status = "okay";
+};
+
+&hdmi_receiver {
+	hpd-gpios = <&gpio1 RK_PC6 GPIO_ACTIVE_LOW>;
+	pinctrl-0 = <&hdmim1_rx_cec &hdmim1_rx_hpdin &hdmim1_rx_scl &hdmim1_rx_sda &hdmirx_hpd>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+*/
+
+&hdmi_receiver_cma {
+	status = "disabled";
+};
+
+&hdmi_receiver {
+	status = "disabled";
+};
+
+&vepu121_1 {
+	status = "disabled";
+};
+
+&vepu121_2 {
+	status = "disabled";
+};
+
+&vepu121_3 {
+	status = "disabled";
+};
+
+&vdec1 {
+	status = "disabled";
+};
+
+&hym8563 {
+	interrupt-parent = <&gpio0>;
+	interrupts = <RK_PB0 IRQ_TYPE_LEVEL_LOW>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&hym8563_int>;
+};
+
+&i2c6 {
+	usbc0: usb-typec@22 {
+		compatible = "fcs,fusb302";
+		reg = <0x22>;
+		interrupt-parent = <&gpio0>;
+		interrupts = <RK_PD3 IRQ_TYPE_LEVEL_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&usbc0_int>;
+		vbus-supply = <&vbus5v0_typec>;
+		status = "okay";
+
+		usb_con: connector {
+			compatible = "usb-c-connector";
+			data-role = "dual";
+			label = "USB-C";
+			power-role = "dual";
+			op-sink-microwatt = <10>;
+			source-pdos = <PDO_FIXED(5000, 1400, PDO_FIXED_USB_COMM)>;
+			sink-pdos = <PDO_FIXED(5000, 10, PDO_FIXED_USB_COMM)>;
+			try-power-role = "source";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@0 {
+					reg = <0>;
+
+					usbc0_hs: endpoint {
+						remote-endpoint = <&usb_host0_xhci_drd_sw>;
+					};
+				};
+
+				port@1 {
+					reg = <1>;
+
+					usbc0_ss: endpoint {
+						remote-endpoint = <&usbdp_phy0_typec_ss>;
+					};
+				};
+
+				port@2 {
+					reg = <2>;
+
+					usbc0_sbu: endpoint {
+						remote-endpoint = <&usbdp_phy0_typec_sbu>;
+					};
+				};
+			};
+		};
+	};
+};
+
+&i2c7 {
+	clock-frequency = <400000>; // goodix touch & ES8388 max. spec
+	
+	panel_disp1@45 {
+		reg = <0x45>;
+		compatible = "waveshare,8.0inch-panel";
+		orientation = "Normal";
+		status = "okay";
+
+		ports {
+			port {
+				panel_dsi1_source: endpoint {
+					remote-endpoint = <&dsi1_output>;
+				};
+			};
+		};
+	};
+
+	goodix@14 {
+		reg = <0x14>;
+		compatible = "goodix,gt911";
+		touchscreen-size-x = <800>;  // int32 value
+		touchscreen-size-y = <1280>; // int32 value
+		touchscreen-inverted-x;
+		touchscreen-swapped-x-y;
+	};
+};
+
+&es8388 {
+	clock-names = "mclk";
+	assigned-clocks = <&cru I2S0_8CH_MCLKOUT_TO_IO>;
+};
+
+&daicpu {
+	system-clock-direction-out;
+};
+
+&i2s5_8ch {
+	status = "okay";
+};
+
+&i2s6_8ch {
+	status = "okay";
+};
+
+&led_blue_gpio {
+	gpios = <&gpio3 RK_PA6 GPIO_ACTIVE_HIGH>;
+	status = "okay";
+};
+
+&led_green_pwm {
+	pwms = <&pwm2 0 25000 0>;
+};
+
+/* M.2 E KEY socket
+ * Reset defined in rk3588-base-pinctrl.dtsi
+ */
+&pcie2x1l0 {
+//	pinctrl-names = "default";
+//	pinctrl-0 = <&pcie30x1m1_0_perstn>;
+	reset-gpios = <&gpio4 RK_PA5 GPIO_ACTIVE_HIGH>;
+	vpcie3v3-supply = <&vcc3v3_wf>;
+	status = "okay";
+};
+
+&vcc3v3_wf {
+	status = "okay";
+};
+
+/* 
+ * Combo phy 1 configured to serve pcie2x1l0
+ */
+&combphy1_ps {
+	status = "okay";
+};
+
+/* ETHERNET phy1 - right ethernet port, uses PCIe2
+ * Using pcie2x1l2
+ * Reset gpio pin not defined in imported rk3588-base-pinctrol.dtsi.
+ * So we add it here in pinctrl.
+ */
+&pcie2x1l1 {
+	reset-gpios = <&gpio3 RK_PB3 GPIO_ACTIVE_HIGH>;
+	vpcie3v3-supply = <&vcc3v3_pcie_eth>;
+	status = "okay";
+	
+	pcie@0,0 {
+		reg = <0x300000 0 0 0 0>;
+		#address-cells = <3>;
+		#size-cells = <2>;
+		ranges;
+		device_type = "pci";
+		bus-range = <0x30 0x3f>;
+
+		rtl_eth0: ethernet@0,0 {
+			compatible = "pci10ec,8125";
+			reg = <0x310000 0 0 0 0>;
+		};
+	};
+};
+
+/* 
+ * Combo phy 2 configured to serve pcie2x1l1
+ */
+&combphy2_psu {
+	status = "okay";
+};
+
+/* phy2 - left ethernet port
+ * Using pcie3x1l1 control lines
+ * reset defined in imported rk3588-base-pinctrol.dtsi:
+ * 'pcie30x1m1_1_perstn' in section 'pci30x1'
+ */
+&pcie2x1l2 {
+	reset-gpios = <&gpio4 RK_PA2 GPIO_ACTIVE_HIGH>;
+	vpcie3v3-supply = <&vcc3v3_pcie_eth>;
+	status = "okay";
+	
+	pcie@0,0 {
+		reg = <0x400000 0 0 0 0>;
+		#address-cells = <3>;
+		#size-cells = <2>;
+		ranges;
+		device_type = "pci";
+		bus-range = <0x40 0x4f>;
+
+		rtl_eth1: ethernet@0,0 {
+			compatible = "pci10ec,8125";
+			reg = <0x410000 0 0 0 0>;
+		};
+	};
+};
+
+/*
+ * Combo phy 0 configured to serve pcie2x1l2
+ */
+&combphy0_ps {
+	status = "okay";
+};
+
+&vcc3v3_pcie_eth {
+	gpios = <&gpio3 RK_PB4 GPIO_ACTIVE_LOW>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pcie_eth_en_l>;
+};
+
+/* M.2 M.key */
+&pcie3x4 {
+	/*
+	 * The board has a "pcie_refclk" oscillator that needs enabling,
+	 * so add it to the list of clocks.
+	 */
+	clocks = <&cru ACLK_PCIE_4L_MSTR>, <&cru ACLK_PCIE_4L_SLV>,
+		<&cru ACLK_PCIE_4L_DBI>, <&cru PCLK_PCIE_4L>,
+		<&cru CLK_PCIE_AUX0>, <&cru CLK_PCIE4L_PIPE>,
+		<&pcie30_refclk>;
+	clock-names = "aclk_mst", "aclk_slv",
+		"aclk_dbi", "pclk",
+		"aux", "pipe",
+		"ref";
+};
+
+&pcie30phy {
+	data-lanes = <1 1 1 1>;
+	/* separate clock lines from the clock generator to phy and devices */
+	rockchip,rx-common-refclk-mode = <0 0 0 0>;
+};
+
+&pinctrl {
+	pcie {
+		pcie30x4_pwren_h: pcie30x4-pwren-h {
+			rockchip,pins = <2 RK_PB6 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+		
+		pcie_eth_en_l: pcie-eth-en-l {
+			rockchip,pins = <3 RK_PB4 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+		
+	hym8563 {
+		hym8563_int: hym8563-int {
+			rockchip,pins = <0 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	leds {
+		blue_led_pin: blue-led {
+			rockchip,pins = <3 RK_PA6 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+
+	hdmirx {
+		hdmirx_hpd: hdmirx-5v-detection {
+			rockchip,pins = <1 RK_PC6 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	ir-receiver {
+		ir_receiver_pin: ir-receiver-pin {
+			rockchip,pins = <4 RK_PB3 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	sound {
+		hp_detect: hp-detect {
+			rockchip,pins = <1 RK_PD3 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	usb {
+		vcc5v0_usb20_en: vcc5v0-usb20-en {
+			rockchip,pins = <3 RK_PB7 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	usb-typec {
+		usbc0_int: usbc0-int {
+			rockchip,pins = <0 RK_PD3 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+
+		typec5v_pwren: typec5v-pwren {
+			rockchip,pins = <4 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+};
+
+&pwm2 {
+	pinctrl-0 = <&pwm2m1_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&pwm3 {
+	pinctrl-0 = <&pwm3m1_pins>;
+	status = "okay";
+};
+
+&recovery_button {
+	status = "okay";
+};
+
+&sfc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&fspim1_pins>;
+};
+
+&u2phy1_otg {
+	phy-supply = <&vcc5v0_sys>;
+};
+
+&uart9 {
+	pinctrl-0 = <&uart9m0_xfer>;
+	status = "okay";
+};
+
+&usbdp_phy0 {
+	mode-switch;
+	orientation-switch;
+	sbu1-dc-gpios = <&gpio4 RK_PA6 GPIO_ACTIVE_HIGH>;
+	sbu2-dc-gpios = <&gpio4 RK_PA7 GPIO_ACTIVE_HIGH>;
+
+	port {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		usbdp_phy0_typec_ss: endpoint@0 {
+			reg = <0>;
+			remote-endpoint = <&usbc0_ss>;
+		};
+
+		usbdp_phy0_typec_sbu: endpoint@1 {
+			reg = <1>;
+			remote-endpoint = <&usbc0_sbu>;
+		};
+	};
+};
+
+&usb_host0_xhci {
+	usb-role-switch;
+
+	port {
+		usb_host0_xhci_drd_sw: endpoint {
+			remote-endpoint = <&usbc0_hs>;
+		};
+	};
+};
+
+&vcc5v0_usb20 {
+	gpio = <&gpio3 RK_PB7 GPIO_ACTIVE_HIGH>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&vcc5v0_usb20_en>;
+};
